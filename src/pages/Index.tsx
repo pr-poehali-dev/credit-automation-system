@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -23,10 +24,37 @@ const NAV = [
 
 const fmt = (n: number) => n.toLocaleString('ru-RU');
 
+const SEND_URL = 'https://functions.poehali.dev/c1731532-6349-438f-b2a8-47cb0357d879';
+
 const Index = () => {
   const [amount, setAmount] = useState(500000);
   const [term, setTerm] = useState(24);
   const rate = 11.9;
+
+  const [form, setForm] = useState({ name: '', phone: '', amount: '' });
+  const [sending, setSending] = useState(false);
+
+  const submitApplication = async () => {
+    if (!form.name.trim() || !form.phone.trim()) {
+      toast.error('Заполните имя и телефон');
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch(SEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Заявка отправлена! Мы свяжемся с вами в ближайшее время.');
+      setForm({ name: '', phone: '', amount: '' });
+    } catch {
+      toast.error('Не удалось отправить заявку. Попробуйте позже.');
+    } finally {
+      setSending(false);
+    }
+  };
 
   const monthly = useMemo(() => {
     const m = rate / 100 / 12;
@@ -337,11 +365,31 @@ const Index = () => {
             </div>
             <div className="bg-primary-foreground/10 backdrop-blur rounded-3xl p-8 border border-primary-foreground/20 space-y-4">
               <h3 className="font-display font-extrabold text-2xl mb-2">Заявка на кредит</h3>
-              <input className="w-full h-12 px-4 rounded-xl bg-primary-foreground text-foreground placeholder:text-muted-foreground outline-none" placeholder="Ваше имя" />
-              <input className="w-full h-12 px-4 rounded-xl bg-primary-foreground text-foreground placeholder:text-muted-foreground outline-none" placeholder="Телефон" />
-              <input className="w-full h-12 px-4 rounded-xl bg-primary-foreground text-foreground placeholder:text-muted-foreground outline-none" placeholder="Желаемая сумма, ₽" />
-              <Button size="lg" className="w-full h-14 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 font-semibold text-base">
-                Отправить заявку
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="w-full h-12 px-4 rounded-xl bg-primary-foreground text-foreground placeholder:text-muted-foreground outline-none"
+                placeholder="Ваше имя"
+              />
+              <input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className="w-full h-12 px-4 rounded-xl bg-primary-foreground text-foreground placeholder:text-muted-foreground outline-none"
+                placeholder="Телефон"
+              />
+              <input
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                className="w-full h-12 px-4 rounded-xl bg-primary-foreground text-foreground placeholder:text-muted-foreground outline-none"
+                placeholder="Желаемая сумма, ₽"
+              />
+              <Button
+                size="lg"
+                onClick={submitApplication}
+                disabled={sending}
+                className="w-full h-14 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 font-semibold text-base"
+              >
+                {sending ? 'Отправляем...' : 'Отправить заявку'}
               </Button>
               <p className="text-xs text-primary-foreground/50 text-center">
                 Нажимая кнопку, вы соглашаетесь на обработку персональных данных
